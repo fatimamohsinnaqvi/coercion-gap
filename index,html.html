@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Coercion Gap — Case File CGI-2026-006</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Special+Elite&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400;1,8..60,500&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+:root{
+  --paper:#E7DFC9;
+  --paper-2:#DED4B8;
+  --paper-3:#D3C7A6;
+  --ink:#211C14;
+  --ink-soft:#5B5340;
+  --redact:#100D09;
+  --stamp:#8F2A16;
+  --stamp-dim:#6E2010;
+  --slate:#3D525C;
+  --gold:#8A6A24;
+  --torn: polygon(0% 2%,2% 0%,6% 3%,11% 0%,16% 2%,21% 0%,26% 3%,31% 0%,36% 2%,41% 0%,46% 3%,51% 0%,56% 2%,61% 0%,66% 3%,71% 0%,76% 2%,81% 0%,86% 3%,91% 0%,96% 2%,100% 0%,100% 100%,0% 100%);
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0;
+  background:var(--paper);
+  background-image:
+    radial-gradient(ellipse at top left, rgba(0,0,0,0.035), transparent 55%),
+    radial-gradient(ellipse at bottom right, rgba(0,0,0,0.05), transparent 60%);
+  color:var(--ink);
+  font-family:'Source Serif 4', serif;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+@media (prefers-reduced-motion: reduce){ *{animation:none !important; transition:none !important;} }
+
+.wrap{max-width:1140px;margin:0 auto;padding:0 26px;}
+.mono{font-family:'IBM Plex Mono',monospace;}
+.stamp-font{font-family:'Special Elite',monospace;}
+
+/* ---------- header: folder tab ---------- */
+.folder-tab{background:var(--ink); color:var(--paper);}
+.folder-tab .wrap{
+  display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;
+  padding:10px 26px; font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.06em;
+}
+.folder-tab b{color:var(--paper);}
+.folder-tab .clr{color:var(--stamp); font-weight:600;}
+
+/* ---------- masthead ---------- */
+.masthead{border-bottom:3px double var(--ink); padding:34px 0 26px;}
+.masthead .wrap{display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:14px;}
+.file-no{font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--ink-soft); letter-spacing:0.05em;}
+.file-no b{color:var(--ink);}
+.stamp-mark{
+  font-family:'Special Elite',monospace; color:var(--stamp); border:2.5px solid var(--stamp);
+  padding:5px 12px; font-size:12px; letter-spacing:0.12em; transform:rotate(-3deg);
+  display:inline-block; opacity:0.9;
+}
+
+/* ---------- hero ---------- */
+.hero{padding:56px 0 30px;}
+.hero h1{
+  font-family:'Special Elite',monospace;
+  font-weight:400; font-size:clamp(30px,4.6vw,52px);
+  line-height:1.18; margin:0 0 26px; color:var(--ink); max-width:900px;
+}
+.hero h1 .redword{color:var(--stamp);}
+.hero p.thesis{max-width:680px; font-size:18px; color:var(--ink-soft); margin:0 0 46px;}
+.hero p.thesis b{color:var(--ink); font-weight:600;}
+
+/* ---------- redaction cards (signature element) ---------- */
+.redact-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(270px,1fr)); gap:22px; margin-bottom:14px;}
+.redact-card{
+  background:var(--paper-2); border:1px solid var(--ink); padding:20px 20px 22px;
+  box-shadow:4px 4px 0 rgba(33,28,20,0.14);
+  position:relative;
+}
+.redact-card::before{
+  content:'EXHIBIT'; position:absolute; top:-10px; left:16px; background:var(--ink); color:var(--paper);
+  font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:0.14em; padding:2px 8px;
+}
+.redact-bar{
+  background:var(--redact); color:var(--redact); user-select:none;
+  padding:9px 10px; font-family:'IBM Plex Mono',monospace; font-size:13.5px; margin:14px 0 6px;
+  clip-path:var(--torn);
+}
+.redact-src{font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--ink-soft); margin-bottom:14px;}
+.stamp-reveal{
+  font-family:'IBM Plex Mono',monospace; font-size:14px; color:var(--ink);
+  border-top:1.5px dashed var(--ink-soft); padding-top:12px;
+}
+.stamp-reveal b{color:var(--stamp); font-size:16px;}
+.credit-line{font-size:12px; color:var(--ink-soft); margin-top:6px; font-family:'IBM Plex Mono',monospace;}
+
+/* ---------- section shell ---------- */
+section{padding:54px 0; border-top:1px solid var(--ink-soft); border-top-style:dashed;}
+.sec-head{margin-bottom:6px;}
+.sec-tag{font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.12em; color:var(--stamp); text-transform:uppercase;}
+.sec-title{font-family:'Special Elite',monospace; font-size:26px; font-weight:400; margin:6px 0 0; color:var(--ink);}
+.sec-sub{color:var(--ink-soft); max-width:700px; font-size:14.5px; margin:12px 0 32px;}
+
+/* ---------- ledger (KPI as typewritten table) ---------- */
+.ledger{width:100%; border-collapse:collapse; font-family:'IBM Plex Mono',monospace; font-size:13.5px; background:var(--paper-2); border:1px solid var(--ink);}
+.ledger th{
+  text-align:left; font-size:10.5px; letter-spacing:0.08em; text-transform:uppercase;
+  color:var(--paper); background:var(--ink); padding:10px 14px;
+}
+.ledger td{padding:12px 14px; border-bottom:1px solid var(--paper-3);}
+.ledger tr:last-child td{border-bottom:none;}
+.ledger td.hot{color:var(--stamp); font-weight:600;}
+.ledger td.corridor{font-family:'Source Serif 4',serif; font-style:italic; font-size:14px;}
+.ledger-wrap{overflow-x:auto; box-shadow:4px 4px 0 rgba(33,28,20,0.14);}
+
+/* ---------- pinned document panel (charts) ---------- */
+.pinned{
+  background:var(--paper-2); border:1px solid var(--ink); padding:26px;
+  margin:28px 0; position:relative; box-shadow:6px 6px 0 rgba(33,28,20,0.12);
+}
+.pinned::before, .pinned::after{
+  content:''; position:absolute; top:-9px; width:36px; height:18px;
+  background:rgba(138,106,36,0.35); border:1px solid rgba(138,106,36,0.55);
+  transform:rotate(-4deg);
+}
+.pinned::before{left:26px;}
+.pinned::after{right:34px; transform:rotate(3deg);}
+.panel-head{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:16px; flex-wrap:wrap; gap:8px;}
+.panel-title{font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:13.5px; color:var(--ink); text-transform:uppercase; letter-spacing:0.04em;}
+.panel-note{font-size:11px; color:var(--ink-soft); font-family:'IBM Plex Mono',monospace;}
+.chart-holder{position:relative; height:320px;}
+.chart-holder.short{height:240px;}
+.footnote{font-size:12.5px; color:var(--ink-soft); margin-top:16px; border-top:1px dashed var(--ink-soft); padding-top:12px; font-family:'IBM Plex Mono',monospace; line-height:1.55;}
+.footnote b{color:var(--stamp); font-weight:600;}
+
+/* ---------- vulnerability index cards ---------- */
+.card-index{display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:16px;}
+.idx-card{
+  background:var(--paper-2); border:1px solid var(--ink); padding:18px;
+  box-shadow:3px 3px 0 rgba(33,28,20,0.12);
+}
+.idx-card:nth-child(3n+2){transform:rotate(0.5deg);}
+.idx-card:nth-child(3n+3){transform:rotate(-0.5deg);}
+.idx-num{font-family:'Special Elite',monospace; font-size:23px; color:var(--stamp); margin-bottom:8px;}
+.idx-label{font-size:13px; color:var(--ink); margin-bottom:6px;}
+.idx-src{font-size:10.5px; color:var(--ink-soft); font-family:'IBM Plex Mono',monospace;}
+
+/* ---------- lexicon index cards ---------- */
+.lex-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(270px,1fr)); gap:18px;}
+.lex-card{
+  background:var(--paper-2); border:1px solid var(--ink); padding:18px 18px 16px;
+  box-shadow:3px 3px 0 rgba(33,28,20,0.12); border-left:5px solid var(--cat-color,var(--slate));
+}
+.lex-cat{font-family:'IBM Plex Mono',monospace; font-size:12.5px; letter-spacing:0.05em; text-transform:uppercase; margin-bottom:8px; color:var(--ink);}
+.lex-def{font-size:13px; color:var(--ink-soft); margin-bottom:14px; font-style:italic;}
+.lex-tags{display:flex; flex-wrap:wrap; gap:6px;}
+.lex-tag{font-family:'IBM Plex Mono',monospace; font-size:11px; padding:4px 8px; border:1px solid var(--ink-soft); color:var(--ink); background:var(--paper);}
+
+/* ---------- chronology ---------- */
+.chrono{border-left:2.5px solid var(--ink); margin-left:6px; padding-left:26px;}
+.ch-item{position:relative; padding-bottom:26px;}
+.ch-item::before{
+  content:''; position:absolute; left:-33px; top:2px; width:14px; height:14px;
+  background:var(--paper); border:2.5px solid var(--stamp);
+}
+.ch-v{font-family:'Special Elite',monospace; font-size:13px; color:var(--stamp);}
+.ch-t{font-weight:600; margin:5px 0 4px; color:var(--ink); font-family:'IBM Plex Mono',monospace; font-size:13.5px;}
+.ch-d{font-size:13.5px; color:var(--ink-soft);}
+
+.conf-legend{display:flex; gap:22px; flex-wrap:wrap; font-size:12px; margin-top:20px; font-family:'IBM Plex Mono',monospace;}
+.conf-legend span{display:flex; align-items:center; gap:7px; color:var(--ink-soft);}
+.dot{width:9px; height:9px; display:inline-block; border:1px solid var(--ink);}
+.dot.high{background:var(--slate);}
+.dot.med{background:var(--gold);}
+.dot.low{background:var(--stamp-dim);}
+
+footer{padding:40px 0 60px; border-top:3px double var(--ink);}
+footer p{font-size:13px; color:var(--ink-soft); max-width:760px;}
+footer .sig{font-family:'Special Elite',monospace; color:var(--ink); font-size:15px; margin-top:20px; line-height:1.6;}
+footer .endstamp{
+  margin-top:22px; display:inline-block; font-family:'Special Elite',monospace; color:var(--stamp);
+  border:2.5px solid var(--stamp); padding:6px 14px; transform:rotate(-2deg); font-size:12px; letter-spacing:0.1em;
+}
+
+@media (max-width:640px){
+  .hero{padding:40px 0 24px;}
+  section{padding:36px 0;}
+  .pinned{padding:16px;}
+}
+</style>
+</head>
+<body>
+
+<div class="folder-tab">
+  <div class="wrap">
+    <div><b>FILE:</b> COERCION-GAP / v6-RESEARCH-GRADE <span class="clr">·</span> STATUS: <b>OPEN</b></div>
+    <div>LAST ENTRY: 2026-06-16 01:42 UTC</div>
+  </div>
+</div>
+
+<div class="masthead">
+  <div class="wrap">
+    <div class="file-no">CASE FILE <b>№ CGI-2026-006</b> &nbsp;·&nbsp; corridors: PAK–AFG / IRN–AFG / SYR–TUR,LBN,JOR</div>
+    <div class="stamp-mark">PUBLIC SOURCE ONLY</div>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="wrap">
+    <h1>Every government calls it <span class="redword">"voluntary."</span><br>The reporting record says otherwise, some of the time, in some places, by a lot.</h1>
+    <p class="thesis">The Coercion Gap Index measures the distance between the language states use for refugee return and the material conditions on record — using return volumes, deportation shares, conflict exposure, and a hand-coded 100-phrase lexicon of official vocabulary. <b>Nothing below is invented: every number is pulled from the cited UNHCR-IOM, EUAA/ACLED, ACCORD, WHO, or Reuters/UN source inside the underlying workbook.</b></p>
+
+    <div class="redact-grid">
+      <div class="redact-card">
+        <div class="redact-bar">humane, voluntary, and gradual</div>
+        <div class="redact-src">— Reuters, quoting Pakistani officials, 6 Aug 2025</div>
+        <div class="stamp-reveal">Week of 12–18 Apr 2026: <b>67,860</b> returns · <b>11,809</b> deportations · <b>11,982</b> arrests/detentions</div>
+      </div>
+      <div class="redact-card">
+        <div class="redact-bar">voluntary repatriation</div>
+        <div class="redact-src">— UNHCR Afghan Returns Weekly Dashboard, series label</div>
+        <div class="stamp-reveal"><b>80%</b> of 2026 returns from Iran (Jan–6 Jun) were classified as deportations</div>
+      </div>
+      <div class="redact-card">
+        <div class="redact-bar">many not by choice</div>
+        <div class="redact-src">— corpus item LC-049, coded Coercion / Risk</div>
+        <div class="stamp-reveal">93% cited fear of arrest, deportation, or financial hardship as their reason for leaving Iran (Flash #50)</div>
+      </div>
+      <div class="redact-card">
+        <div class="redact-bar">guest · brother · shared faith</div>
+        <div class="redact-src">— Lang_Codebook_v6, Kinship category examples</div>
+        <div class="stamp-reveal">Returnee response funded at only <b>8%</b>; over <b>5,000,000</b> returnees recorded since late 2023</div>
+      </div>
+    </div>
+    <div class="credit-line">Pairings assembled from Flash_Weekly_Core, Iran_ER30_Verified_v5, and Language_Corpus_100_v4 / Lang_Codebook_v6.</div>
+  </div>
+</div>
+
+<!-- ================= LEDGER ================= -->
+<section id="kpi">
+  <div class="wrap">
+    <div class="sec-head"><div class="sec-tag">Exhibit A</div><h2 class="sec-title">The ledger — three corridors, three windows</h2></div>
+    <p class="sec-sub">Reporting windows differ by corridor and are shown as recorded, not normalized — Pakistan and Iran cover Jan–early Jun 2026; Syria is cumulative since Dec 2024.</p>
+    <div class="ledger-wrap">
+      <table class="ledger">
+        <tr><th>Corridor</th><th>Window</th><th>Total returns</th><th>Deportations</th><th>Share</th><th>Arrests/detentions</th></tr>
+        <tr><td class="corridor">Pakistan → Afghanistan</td><td>04 Jan–06 Jun 2026 (#77–#97)</td><td>534,399</td><td class="hot">57,706</td><td class="hot">10.8%</td><td>58,407</td></tr>
+        <tr><td class="corridor">Iran → Afghanistan</td><td>01 Jan–06 Jun 2026 (ER #30)</td><td>311,200</td><td class="hot">247,700</td><td class="hot">80%</td><td>—</td></tr>
+        <tr><td class="corridor">Iran → Afghanistan</td><td>Full year 2025</td><td>~1,900,000</td><td class="hot">~1,262,000</td><td class="hot">67%</td><td>—</td></tr>
+        <tr><td class="corridor">Iran → Afghanistan</td><td>After 13 Jun 2025</td><td>—</td><td class="hot">852,800 deported</td><td>—</td><td>—</td></tr>
+        <tr><td class="corridor">Syria (Türkiye/Lebanon/Jordan + Iraq, Egypt)</td><td>08 Dec 2024–30 Apr 2026</td><td>1,630,874</td><td>not extracted</td><td>not extracted</td><td>—</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ================= FLASH SERIES ================= -->
+<section id="flash">
+  <div class="wrap">
+    <div class="sec-head"><div class="sec-tag">Exhibit B</div><h2 class="sec-title">The Pakistan–Afghanistan weekly record</h2></div>
+    <p class="sec-sub">All 21 rows of the core 2026 UNHCR-IOM Flash Update series (#77–#97), row-level, no blanks. The April spike is the central event window in the workbook.</p>
+
+    <div class="pinned">
+      <div class="panel-head">
+        <div class="panel-title">Returns · Deportations · Arrests — per day</div>
+        <div class="panel-note">source: Flash_Weekly_Core</div>
+      </div>
+      <div class="chart-holder"><canvas id="flashChart"></canvas></div>
+      <div class="footnote">Values are normalized to <b>per-day</b> rates because Update #96 spans a two-week reporting period (47,893 returns / 1,955 deportations / 1,950 arrests over 14 days, raw).</div>
+    </div>
+
+    <div class="pinned">
+      <div class="panel-head">
+        <div class="panel-title">Computed coercion sub-scores — three of four components</div>
+        <div class="panel-note">computed live, per Scoring_Method thresholds</div>
+      </div>
+      <div class="chart-holder"><canvas id="scoreChart"></canvas></div>
+      <div class="footnote"><b>On completeness:</b> the workbook's full Coercion Gap Index averages four sub-scores. Forced Return Score, Return Spike Score, and Arrest Pressure Score are deterministic and computed here exactly from the raw data. The fourth, Policy Pressure Score, is a qualitative 5–9 judgment call hand-coded per row in the source file; its exact values could not be recovered from the workbook and are omitted rather than estimated. Read the line above as a partial index.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CORRIDOR COMPARISON ================= -->
+<section id="compare">
+  <div class="wrap">
+    <div class="sec-head"><div class="sec-tag">Exhibit C</div><h2 class="sec-title">Same word, different reality</h2></div>
+    <p class="sec-sub">Deportation share — the cleanest single proxy for coercion here — moves sharply across corridors and years, while official vocabulary stays constant.</p>
+    <div class="pinned">
+      <div class="chart-holder short"><canvas id="shareChart"></canvas></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= VULNERABILITY / CONFLICT OVERLAY ================= -->
+<section id="vuln">
+  <div class="wrap">
+    <div class="sec-head"><div class="sec-tag">Exhibit D</div><h2 class="sec-title">What "return" returns people to</h2></div>
+    <p class="sec-sub">Conflict exposure and humanitarian strain indicators for Afghanistan, joined to the return-geography layer.</p>
+    <div class="card-index">
+      <div class="idx-card"><div class="idx-num">347 / 360</div><div class="idx-label">ACLED events / UCDP civilian deaths, 01 Dec 2025–20 Mar 2026</div><div class="idx-src">EUAA COI Query Response Q16, Annex 1</div></div>
+      <div class="idx-card"><div class="idx-num">282 / 174</div><div class="idx-label">Conflict incidents / fatalities, Q2 2025</div><div class="idx-src">ACCORD / ACLED update</div></div>
+      <div class="idx-card"><div class="idx-num">21.9M</div><div class="idx-label">People in need, 2026 Humanitarian Needs &amp; Response Plan</div><div class="idx-src">HNRP Afghanistan 2026</div></div>
+      <div class="idx-card"><div class="idx-num">&gt;5.0M</div><div class="idx-label">Returnees since late 2023; aid system "severely strained"</div><div class="idx-src">Reuters / UNHCR, Feb 2026</div></div>
+      <div class="idx-card"><div class="idx-num">8%</div><div class="idx-label">UNHCR returnee response funding level, early 2026</div><div class="idx-src">UNHCR</div></div>
+      <div class="idx-card"><div class="idx-num">+200,000</div><div class="idx-label">Additional children projected to face acute malnutrition</div><div class="idx-src">Reuters / WFP / UN, Mar 2026</div></div>
+      <div class="idx-card"><div class="idx-num">16,370</div><div class="idx-label">Families displaced, six eastern provinces, 26 Feb–3 Mar 2026</div><div class="idx-src">UN OCHA via EUAA</div></div>
+      <div class="idx-card"><div class="idx-num">~66,000</div><div class="idx-label">People displaced by Afghanistan–Pakistan conflict, as of 4 Mar 2026</div><div class="idx-src">IOM statement</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= LEXICON ================= -->
+<section id="lexicon">
+  <div class="wrap">
+    <div class="sec-head"><div class="sec-tag">Exhibit E</div><h2 class="sec-title">The lexicon of return</h2></div>
+    <p class="sec-sub">Seven categories from the workbook's codebook (Lang_Codebook_v6), each with real phrases drawn from the 100-entry language corpus.</p>
+    <div class="lex-grid">
+      <div class="lex-card" style="--cat-color:#8A6A24"><div class="lex-cat">Humanitarian</div><div class="lex-def">Presents return as protective, rights-based, or dignified.</div><div class="lex-tags"><span class="lex-tag">voluntary repatriation</span><span class="lex-tag">dignified manner</span><span class="lex-tag">humane, voluntary, and gradual</span></div></div>
+      <div class="lex-card" style="--cat-color:#8F2A16"><div class="lex-cat">Security / Legal</div><div class="lex-def">Frames refugees through legality, enforcement, or border control.</div><div class="lex-tags"><span class="lex-tag">Illegal Foreigners' Repatriation Plan</span><span class="lex-tag">designated as illegal foreigners</span><span class="lex-tag">valid visas</span></div></div>
+      <div class="lex-card" style="--cat-color:#3D525C"><div class="lex-cat">Administrative</div><div class="lex-def">Converts movement into procedure or status management.</div><div class="lex-tags"><span class="lex-tag">enforcement actions commence</span><span class="lex-tag">regularization and return scheme</span><span class="lex-tag">headcount slips expire</span></div></div>
+      <div class="lex-card" style="--cat-color:#5B5340"><div class="lex-cat">Burden / Capacity</div><div class="lex-def">Emphasizes host-state strain, cost, or capacity limits.</div><div class="lex-tags"><span class="lex-tag">straining reception capacities</span><span class="lex-tag">already stretched border reception</span><span class="lex-tag">pressure on basic services</span></div></div>
+      <div class="lex-card" style="--cat-color:#8A6A24"><div class="lex-cat">Kinship</div><div class="lex-def">Invokes shared identity, hospitality, or religious closeness.</div><div class="lex-tags"><span class="lex-tag">guest</span><span class="lex-tag">brother</span><span class="lex-tag">shared faith</span><span class="lex-tag">hospitality</span></div></div>
+      <div class="lex-card" style="--cat-color:#8F2A16"><div class="lex-cat">Coercion / Risk</div><div class="lex-def">Indicates pressure, lack of choice, deadlines, fear, or force.</div><div class="lex-tags"><span class="lex-tag">not by choice</span><span class="lex-tag">pressured to sign documents they could not read</span><span class="lex-tag">confiscation of assets</span></div></div>
+      <div class="lex-card" style="--cat-color:#3D525C"><div class="lex-cat">Public Health</div><div class="lex-def">Connects return to health, food, water, or care access.</div><div class="lex-tags"><span class="lex-tag">fragile health system under severe strain</span><span class="lex-tag">water-related health issues</span><span class="lex-tag">psychosocial support needs</span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CHRONOLOGY ================= -->
+<section id="method">
+  <div class="wrap">
+    <div class="sec-head"><div class="sec-tag">Exhibit F</div><h2 class="sec-title">Chain of custody — workbook history</h2></div>
+    <p class="sec-sub">The dataset was built across five documented passes, each preserved rather than overwritten, so every claim above traces back to a version and a source row.</p>
+    <div class="chrono">
+      <div class="ch-item"><div class="ch-v">v3 — FILED</div><div class="ch-t">Complete core Flash series</div><div class="ch-d">Row-level Pakistan–Afghanistan dataset, Updates #77–#97, no blank core fields, row-wise source URLs.</div></div>
+      <div class="ch-item"><div class="ch-v">v4 — FILED</div><div class="ch-t">Seven missing components added</div><div class="ch-d">Assisted-return dashboard details, Pakistan ER #52, Iran ER #30, intended-return geography, conflict/vulnerability overlays, a 100-entry language corpus, and the 2025 Flash #37–#76 backfill.</div></div>
+      <div class="ch-item"><div class="ch-v">v5 — FILED</div><div class="ch-t">Verification-grade backfill</div><div class="ch-d">Most 2025 weekly rows filled or derived from consecutive cumulative totals; unresolved exact splits isolated in Unallocated_Intervals_v5 rather than guessed.</div></div>
+      <div class="ch-item"><div class="ch-v">v6 — OPEN</div><div class="ch-t">Research-grade completion pass</div><div class="ch-d">Geography join, ACLED/EUAA conflict join, verified Iran monthly deportation chart, language-coding validation with a second-coder template, page/table citations, and a Syria comparison sheet.</div></div>
+    </div>
+    <div class="conf-legend">
+      <span><span class="dot high"></span>High — direct PDF/text extraction or official key figure</span>
+      <span><span class="dot med"></span>Medium — search-indexed or chart-derived; needs visual verification</span>
+      <span><span class="dot low"></span>Low / not extracted — source located, value explicitly flagged rather than left blank</span>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p><b>Public-source-only project.</b> No private, government, or family-access data is used anywhere in this workbook; every figure carries a public source URL. Medium- and low-confidence rows are marked explicitly rather than silently omitted — the district-level return-geography map, exact #38/#47 weekly deportation splits, and the Syria voluntary/forced breakdown remain open items.</p>
+    <p class="sig">"When a government calls a movement of people repatriation — does the evidence show safety, or does it show scarcity?"</p>
+    <div class="endstamp">END OF FILE — v6</div>
+  </div>
+</footer>
+
+<script>
+const flashData = [
+  {u:77, start:'Jan 04', days:7, r:19666, d:1718, a:1726},
+  {u:78, start:'Jan 11', days:7, r:17970, d:1485, a:1548},
+  {u:79, start:'Jan 18', days:7, r:17870, d:1666, a:1685},
+  {u:80, start:'Jan 25', days:7, r:15707, d:1530, a:1582},
+  {u:81, start:'Feb 01', days:7, r:22314, d:2131, a:2103},
+  {u:82, start:'Feb 08', days:7, r:24814, d:1220, a:1224},
+  {u:83, start:'Feb 15', days:7, r:27011, d:2210, a:2218},
+  {u:84, start:'Feb 22', days:7, r:12543, d:947,  a:945},
+  {u:85, start:'Mar 01', days:7, r:2502,  d:1726, a:1653},
+  {u:86, start:'Mar 08', days:7, r:2537,  d:1298, a:1533},
+  {u:87, start:'Mar 15', days:7, r:1977,  d:1314, a:1562},
+  {u:88, start:'Mar 22', days:7, r:1540,  d:775,  a:781},
+  {u:89, start:'Mar 29', days:7, r:12739, d:3053, a:2941},
+  {u:90, start:'Apr 05', days:7, r:36987, d:11571,a:11788},
+  {u:91, start:'Apr 12', days:7, r:67860, d:11809,a:11982},
+  {u:92, start:'Apr 19', days:7, r:57381, d:4742, a:4700},
+  {u:93, start:'Apr 26', days:7, r:39487, d:2305, a:2287},
+  {u:94, start:'May 03', days:7, r:38486, d:1549, a:1516},
+  {u:95, start:'May 10', days:7, r:41672, d:1283, a:1236},
+  {u:96, start:'May 17*',days:14,r:47893, d:1955, a:1950},
+  {u:97, start:'May 31', days:7, r:25443, d:1419, a:1447},
+];
+
+flashData.forEach(row=>{
+  row.rday = row.r/row.days;
+  row.dday = row.d/row.days;
+  row.aday = row.a/row.days;
+  row.share = row.d/row.r;
+});
+
+function forcedReturnScore(share){
+  const pct = share*100;
+  if(pct<=5) return 1;
+  if(pct<=10) return 3;
+  if(pct<=20) return 5;
+  if(pct<=35) return 7;
+  return 10;
+}
+function returnSpikeScore(idx){
+  if(idx===0) return 0;
+  const prev = flashData[idx-1].rday;
+  const cur = flashData[idx].rday;
+  if(prev<=0) return 0;
+  const change = (cur-prev)/prev*100;
+  if(change<=0) return 0;
+  if(change<=25) return 3;
+  if(change<=50) return 5;
+  if(change<=100) return 7;
+  return 10;
+}
+function arrestPressureScore(aday){
+  if(aday<150) return 1;
+  if(aday<250) return 3;
+  if(aday<500) return 5;
+  if(aday<1500) return 7;
+  return 10;
+}
+flashData.forEach((row,i)=>{
+  row.forced = forcedReturnScore(row.share);
+  row.spike = returnSpikeScore(i);
+  row.arrestp = arrestPressureScore(row.aday);
+  row.partialIndex = (row.forced+row.spike+row.arrestp)/3;
+});
+
+const labels = flashData.map(r=>`#${r.u} (${r.start})`);
+
+function initCharts(){
+  Chart.defaults.font.family = "'IBM Plex Mono', monospace";
+  Chart.defaults.color = '#5B5340';
+  Chart.defaults.borderColor = '#D3C7A6';
+
+  new Chart(document.getElementById('flashChart'), {
+    type:'bar',
+    data:{
+      labels,
+      datasets:[
+        {type:'line', label:'Returns / day', data:flashData.map(r=>r.rday.toFixed(0)), borderColor:'#3D525C', backgroundColor:'#3D525C', tension:0.25, yAxisID:'y', pointRadius:2, borderWidth:2},
+        {type:'bar', label:'Deportations / day', data:flashData.map(r=>r.dday.toFixed(1)), backgroundColor:'#8F2A16', yAxisID:'y1'},
+        {type:'bar', label:'Arrests-Detentions / day', data:flashData.map(r=>r.aday.toFixed(1)), backgroundColor:'#8A6A24', yAxisID:'y1'},
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{mode:'index', intersect:false},
+      scales:{
+        x:{ticks:{maxRotation:60,minRotation:60,font:{size:9}}, grid:{display:false}},
+        y:{position:'left', title:{display:true,text:'Returns / day'}, grid:{color:'#D3C7A6'}},
+        y1:{position:'right', title:{display:true,text:'Deportations & arrests / day'}, grid:{display:false}}
+      },
+      plugins:{legend:{labels:{boxWidth:12, font:{size:11}}}}
+    }
+  });
+
+  new Chart(document.getElementById('scoreChart'), {
+    type:'line',
+    data:{
+      labels,
+      datasets:[
+        {label:'Forced Return Score', data:flashData.map(r=>r.forced), borderColor:'#8F2A16', backgroundColor:'#8F2A16', tension:0.2, pointRadius:2},
+        {label:'Return Spike Score', data:flashData.map(r=>r.spike), borderColor:'#8A6A24', backgroundColor:'#8A6A24', tension:0.2, pointRadius:2},
+        {label:'Arrest Pressure Score', data:flashData.map(r=>r.arrestp), borderColor:'#3D525C', backgroundColor:'#3D525C', tension:0.2, pointRadius:2},
+        {label:'Partial index (avg. of the 3 above)', data:flashData.map(r=>r.partialIndex.toFixed(1)), borderColor:'#211C14', backgroundColor:'#211C14', borderDash:[4,3], tension:0.2, pointRadius:1, borderWidth:1.5},
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      scales:{
+        x:{ticks:{maxRotation:60,minRotation:60,font:{size:9}}, grid:{display:false}},
+        y:{min:0, max:10, title:{display:true,text:'Score (1–10)'}, grid:{color:'#D3C7A6'}}
+      },
+      plugins:{legend:{labels:{boxWidth:12, font:{size:11}}}}
+    }
+  });
+
+  new Chart(document.getElementById('shareChart'), {
+    type:'bar',
+    data:{
+      labels:['Pakistan → Afghanistan\n(2026 core, #77–#97)','Iran → Afghanistan\n(2025)','Iran → Afghanistan\n(2026, through 6 Jun)'],
+      datasets:[{
+        label:'Deportation share of total returns',
+        data:[10.8, 67, 80],
+        backgroundColor:['#3D525C','#8A6A24','#8F2A16'],
+        borderRadius:2,
+      }]
+    },
+    options:{
+      indexAxis:'y',
+      responsive:true, maintainAspectRatio:false,
+      scales:{
+        x:{min:0, max:100, title:{display:true,text:'% of returns classified as deportations'}, grid:{color:'#D3C7A6'}},
+        y:{grid:{display:false}, ticks:{font:{size:11}}}
+      },
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:(ctx)=>ctx.raw+'%'}}}
+    }
+  });
+}
+
+if (typeof Chart !== 'undefined') {
+  initCharts();
+} else {
+  window.addEventListener('load', function(){
+    if (typeof Chart !== 'undefined') initCharts();
+  });
+}
+</script>
+
+</body>
+</html>
